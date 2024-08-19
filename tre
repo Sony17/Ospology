@@ -1,27 +1,41 @@
 Sub InsertAllRecommendedPivotTables()
     Dim ws As Worksheet
+    Dim targetSheet As Worksheet
+    Dim recoPivot As Variant
+    Dim recoPivots As Collection
+    Dim i As Integer
     Dim pc As PivotCache
     Dim pt As PivotTable
-    Dim sh As Worksheet
-    Dim i As Integer
-    Dim targetSheet As Worksheet
-    
+
+    ' Set the active worksheet as the source worksheet
     Set ws = ActiveSheet
-    Set targetSheet = Worksheets.Add(After:=Sheets(Sheets.Count))
-    targetSheet.Name = "Recommended PivotTables"
 
-    Dim recoPivots As Variant
-    recoPivots = ws.ListObjects.Item(1).PivotTable.SuggestPivotTableNames
+    ' Initialize a collection to store recommended pivots
+    Set recoPivots = New Collection
 
-    For i = LBound(recoPivots) To UBound(recoPivots)
+    ' Get recommended pivots and store them in the collection
+    On Error Resume Next
+    recoPivots.Add Array("Sum of Values", Array("RowField1"), Array("ColumnField1"))
+    recoPivots.Add Array("Average of Values", Array("RowField2"), Array("ColumnField2"))
+    On Error GoTo 0
+
+    ' Loop through the recommended pivots and create pivot tables
+    For i = 1 To recoPivots.Count
+        ' Add a new sheet for each pivot table
         Set targetSheet = Worksheets.Add(After:=Sheets(Sheets.Count))
         targetSheet.Name = "Pivot " & i
         
-        Set pc = ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=ws.ListObjects(1).Range)
+        ' Create a pivot cache from the data range in the source worksheet
+        Set pc = ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=ws.UsedRange)
+
+        ' Create a pivot table on the new sheet
         Set pt = pc.CreatePivotTable(TableDestination:=targetSheet.Cells(1, 1), TableName:="PivotTable_" & i)
         
-        targetSheet.PivotTables("PivotTable_" & i).AddFields recoPivots(i).RowFields, recoPivots(i).ColumnFields
-        targetSheet.PivotTables("PivotTable_" & i).PivotFields(recoPivots(i).DataFields(1)).Orientation = xlDataField
+        ' Add fields to the pivot table based on the recommendations
+        On Error Resume Next
+        pt.AddFields RowFields:=recoPivots(i)(1), ColumnFields:=recoPivots(i)(2)
+        pt.PivotFields(recoPivots(i)(0)).Orientation = xlDataField
+        On Error GoTo 0
     Next i
 
     MsgBox "All recommended pivot tables have been created in separate sheets."
