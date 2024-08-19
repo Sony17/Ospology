@@ -1,0 +1,28 @@
+Sub InsertAllRecommendedPivotTables()
+    Dim ws As Worksheet
+    Dim pc As PivotCache
+    Dim pt As PivotTable
+    Dim sh As Worksheet
+    Dim i As Integer
+    Dim targetSheet As Worksheet
+    
+    Set ws = ActiveSheet
+    Set targetSheet = Worksheets.Add(After:=Sheets(Sheets.Count))
+    targetSheet.Name = "Recommended PivotTables"
+
+    Dim recoPivots As Variant
+    recoPivots = ws.ListObjects.Item(1).PivotTable.SuggestPivotTableNames
+
+    For i = LBound(recoPivots) To UBound(recoPivots)
+        Set targetSheet = Worksheets.Add(After:=Sheets(Sheets.Count))
+        targetSheet.Name = "Pivot " & i
+        
+        Set pc = ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=ws.ListObjects(1).Range)
+        Set pt = pc.CreatePivotTable(TableDestination:=targetSheet.Cells(1, 1), TableName:="PivotTable_" & i)
+        
+        targetSheet.PivotTables("PivotTable_" & i).AddFields recoPivots(i).RowFields, recoPivots(i).ColumnFields
+        targetSheet.PivotTables("PivotTable_" & i).PivotFields(recoPivots(i).DataFields(1)).Orientation = xlDataField
+    Next i
+
+    MsgBox "All recommended pivot tables have been created in separate sheets."
+End Sub
