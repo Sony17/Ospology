@@ -1,42 +1,62 @@
-Sub InsertAllRecommendedPivotTables()
-    Dim ws As Worksheet
-    Dim targetSheet As Worksheet
-    Dim recoPivot As Variant
-    Dim recoPivots As Collection
-    Dim i As Integer
-    Dim pc As PivotCache
-    Dim pt As PivotTable
+import React, { useRef, useEffect } from 'react';
+import Highcharts from 'highcharts';
+import HighchartsReact from 'highcharts-react-official';
+import exporting from 'highcharts/modules/exporting';
+import exportData from 'highcharts/modules/export-data';
 
-    ' Set the active worksheet as the source worksheet
-    Set ws = ActiveSheet
+// Initialize exporting modules
+exporting(Highcharts);
+exportData(Highcharts);
 
-    ' Initialize a collection to store recommended pivots
-    Set recoPivots = New Collection
+const MyChart = () => {
+  const chartRef = useRef(null);
 
-    ' Get recommended pivots and store them in the collection
-    On Error Resume Next
-    recoPivots.Add Array("Sum of Values", Array("RowField1"), Array("ColumnField1"))
-    recoPivots.Add Array("Average of Values", Array("RowField2"), Array("ColumnField2"))
-    On Error GoTo 0
+  useEffect(() => {
+    // Add event listener to the download button after the chart is rendered
+    const downloadButton = document.getElementById('download-btn');
+    if (downloadButton) {
+      downloadButton.addEventListener('click', handleDownloadClick);
+    }
 
-    ' Loop through the recommended pivots and create pivot tables
-    For i = 1 To recoPivots.Count
-        ' Add a new sheet for each pivot table
-        Set targetSheet = Worksheets.Add(After:=Sheets(Sheets.Count))
-        targetSheet.Name = "Pivot " & i
-        
-        ' Create a pivot cache from the data range in the source worksheet
-        Set pc = ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=ws.UsedRange)
+    return () => {
+      // Cleanup event listener on unmount
+      if (downloadButton) {
+        downloadButton.removeEventListener('click', handleDownloadClick);
+      }
+    };
+  }, []);
 
-        ' Create a pivot table on the new sheet
-        Set pt = pc.CreatePivotTable(TableDestination:=targetSheet.Cells(1, 1), TableName:="PivotTable_" & i)
-        
-        ' Add fields to the pivot table based on the recommendations
-        On Error Resume Next
-        pt.AddFields RowFields:=recoPivots(i)(1), ColumnFields:=recoPivots(i)(2)
-        pt.PivotFields(recoPivots(i)(0)).Orientation = xlDataField
-        On Error GoTo 0
-    Next i
+  const handleDownloadClick = () => {
+    if (chartRef.current) {
+      chartRef.current.chart.exportChart({
+        type: 'image/png'
+      });
+    }
+  };
 
-    MsgBox "All recommended pivot tables have been created in separate sheets."
-End Sub
+  const options = {
+    title: {
+      useHTML: true,
+      text: 'My Highchart <button id="download-btn" style="margin-left: 10px;">Download PNG</button>'
+    },
+    series: [
+      {
+        name: 'Example Data',
+        data: [1, 2, 3, 4, 5]
+      }
+    ],
+    exporting: {
+      enabled: true // You can enable or disable default export options
+    }
+  };
+
+  return (
+    <HighchartsReact
+      highcharts={Highcharts}
+      options={options}
+      ref={chartRef}
+    />
+  );
+};
+
+export default MyChart;
